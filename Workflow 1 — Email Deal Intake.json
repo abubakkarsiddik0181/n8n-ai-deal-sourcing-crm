@@ -1,0 +1,673 @@
+{
+  "name": "workflow 1",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\n\nreturn [{\n  json: {\n    subject: item.subject || '',\n    sender: item.from?.value?.[0]?.address || '',\n    body: item.text || item.html || ''\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -144,
+        -48
+      ],
+      "id": "4f3e96df-029d-45aa-b569-4889619cfd9b",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Subject:{{ $json.subject }}\nBody:{{ $json.body }}\nSender:{{ $json.sender }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are an AI email classifier for a business acquisition automation system.\n\nYour task is to determine whether an email is related to a REAL business acquisition / business-for-sale opportunity.\n\n\n\n## INPUT\n\nSubject: {{ $json.subject }}\nSender:{{ $json.sender }}\nBody: {{ $json.body }}\n\n\n## OUTPUT RULE\n\nReturn ONLY valid JSON in the following format:\n\n{\n\"isBusinessAcquisition\": true,\n\"subject\": \"subject\",\n\"sender\": \"sender\",\n\"body\": \"body\"\n}\n\nOR\n\n{\n\"isBusinessAcquisition\": false,\n\"subject\": \"subject\",\n\"sender\": \"sender\",\n\"body\": \"body\"\n}\n\n## CLASSIFICATION RULES\n\nReturn true only if the email is clearly related to:\n\n* Business for sale\n* Company acquisition opportunity\n* Broker sending a deal\n* Owner looking for a buyer\n* M&A opportunity\n* Private company sale listing\n* Acquisition target introductions\n* Business broker outreach containing a specific business opportunity\n\nReturn false for:\n\n* Ads / marketing emails\n* Newsletters\n* Personal emails\n* Ecommerce order emails\n* Job offers\n* Recruitment emails\n* General investment news\n* Vendor outreach\n* Software promotions\n* Cold sales emails\n* Support tickets\n* Funding announcements\n* Startup news\n* Generic investment opportunities without a specific business for sale\n\n## IMPORTANT RULES\n\n* Return ONLY valid JSON\n* Do NOT explain your reasoning\n* Do NOT add markdown\n* Do NOT add code fences\n* Do NOT add any extra fields\n* Preserve the original subject, sender, and body exactly as provided\n* If uncertain, return false\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        80,
+        -48
+      ],
+      "id": "5e602534-0742-49a7-82f2-f7735b7143cc",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "deepseek/deepseek-chat",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        96,
+        176
+      ],
+      "id": "dd334c21-01d3-4517-8384-5fb512f46f41",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "rOvLVohIFKHR5Mtr",
+          "name": "OpenRouter account 99"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n\"isBusinessAcquisition\": true,\n\"subject\": \"{{subject}}\",\n\"sender\": \"{{sender}}\",\n\"body\": \"{{body}}\"\n}\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        224,
+        176
+      ],
+      "id": "e2974579-0f7c-4de8-8acb-1a24eb2f5e42",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "6d14e674-8beb-4295-86e7-3cbbce0088e6",
+              "leftValue": "={{ $json.output.isBusinessAcquisition }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        432,
+        -48
+      ],
+      "id": "f882ad96-282c-4d7d-aa52-4119388042a5",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze this email:\n\nSubject: {{ $json.output.subject }}\nSender:{{ $json.output.sender }}\nbody:{{ $json.output.body }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are a deal analyst for Madison Lane Capital.\n\nExtract ALL information from this email and score the deal.\n\nEXTRACT these fields:\n- company_name: business name from email\n- industry: type of business\n- geography: location mentioned\n- asking_price: any price mentioned (number only)\n- revenue: any revenue figure (number only)\n- ebitda: any EBITDA figure (number only)\n- broker_name: sender name\n- broker_email: sender email\n- description: 2-3 sentence summary\n- red_flags: list of concerns (empty array if none)\n- source: \"Email\"\n\nSCORING (add points for what EXISTS in email):\n- Revenue $500K+           → +2 points\n- EBITDA margin 15%+       → +2 points\n- Asking price < 5x EBITDA → +2 points\n- Location USA             → +1 point\n- Low/no red flags         → +2 points\n- Growth potential visible → +1 point\n\n- fit_score: total points (0-10)\n- fit_reasoning: explain what data was found and why this score\n\nReturn ONLY raw JSON, no markdown, no backticks."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        656,
+        -304
+      ],
+      "id": "37c1b4af-b13f-4dad-b580-441f24989413",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "deepseek/deepseek-chat",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        736,
+        -80
+      ],
+      "id": "fc53a764-5f1b-43b0-bd74-825aa13fde1c",
+      "name": "OpenRouter Chat Model1",
+      "credentials": {
+        "openRouterApi": {
+          "id": "rOvLVohIFKHR5Mtr",
+          "name": "OpenRouter account 99"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json.text;\nconst cleaned = response.replace(/```json|```/g, '').trim();\nconst deal = JSON.parse(cleaned);\nreturn [{ json: deal }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1008,
+        -192
+      ],
+      "id": "e4b40f6d-9689-460b-9b87-d89ab0bdd230",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "fec9be11-9470-435a-871c-d1f0ab23e577",
+              "leftValue": "={{ $json.fit_score }}",
+              "rightValue": 7,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1232,
+        -192
+      ],
+      "id": "346e4404-d6c7-48fb-acd1-6a7eae349f00",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "chatId": "6674352173",
+        "text": "=🏢 *New Deal Alert!*\n\n*Company:* {{ $('If1').item.json.company_name }}\n*Industry:* {{ $('If1').item.json.industry }}\n*Location:* {{ $('If1').item.json.geography }}\n*Asking Price:* ${{ $('If1').item.json.asking_price }}\n*Revenue:* ${{ $('If1').item.json.revenue }}\n*EBITDA:* ${{ $('If1').item.json.ebitda }}\n*Fit Score:* {{ $('If1').item.json.fit_score }}/10 ⭐\n*Summary:* {{ $('If1').item.json.description }}\n*Broker:* {{ $('If1').item.json.broker_name }}\n*Broker Email:*{{ $('If1').item.json.broker_email }}\n*Source:* {{ $('If1').item.json.source }}\n\n🔗 Review in HubSpot:\nhttps://app-na2.hubspot.com/contacts/246226360/record/0-3/{{ $json.dealId }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2064,
+        -208
+      ],
+      "id": "9d678243-6597-4fb8-a11a-5324f838ec80",
+      "name": "Send a text message",
+      "webhookId": "a11cc84d-4338-4aa0-8e0b-d28677b95dda",
+      "credentials": {
+        "telegramApi": {
+          "id": "KUOkrTKXlM4zIVb8",
+          "name": "madison lane"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -816,
+        384
+      ],
+      "id": "42ec7661-c2bd-49f3-a063-cfbd90808f09",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": 3,
+        "simple": false,
+        "filters": {
+          "readStatus": "unread"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -592,
+        384
+      ],
+      "id": "c28ce789-f89e-4372-ba17-a23a794c1438",
+      "name": "Get many messages",
+      "webhookId": "65b501ce-6e40-4870-9ba7-8d93775a3c45",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "B4W8yjxulsWcGQlZ",
+          "name": "Gmail new"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -368,
+        384
+      ],
+      "id": "81dd4e75-0a7d-4079-b1b3-cba98b7aa5e8",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ $('Loop Over Items').item.json.id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        720,
+        96
+      ],
+      "id": "bcc97ffd-d1ec-473b-8a1d-ec38f33997cd",
+      "name": "Mark a message as read",
+      "webhookId": "e6fdb19c-ec34-4dc5-8300-2c7bc5490685",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "B4W8yjxulsWcGQlZ",
+          "name": "Gmail new"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ $('Loop Over Items').item.json.id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2352,
+        80
+      ],
+      "id": "847a31bb-8613-4a8c-a563-4656a35875b7",
+      "name": "Mark a message as read1",
+      "webhookId": "e6fdb19c-ec34-4dc5-8300-2c7bc5490685",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "B4W8yjxulsWcGQlZ",
+          "name": "Gmail new"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "appToken",
+        "resource": "deal",
+        "stage": "appointmentscheduled",
+        "additionalFields": {
+          "customPropertiesUi": {
+            "customPropertiesValues": [
+              {
+                "property": "industry",
+                "value": "={{ $json.broker_name }}"
+              },
+              {
+                "property": "deal_source",
+                "value": "={{ $json.source }}"
+              },
+              {
+                "property": "ebitda",
+                "value": "={{ $json.ebitda }}"
+              },
+              {
+                "property": "geography",
+                "value": "={{ $json.geography }}"
+              },
+              {
+                "property": "fit_score",
+                "value": "={{ $json.fit_score }}"
+              },
+              {
+                "property": "fit_reasoning",
+                "value": "={{ $json.fit_reasoning }}"
+              },
+              {
+                "property": "annual_revenue",
+                "value": "={{ $json.revenue }}"
+              },
+              {
+                "property": "ai_summary",
+                "value": "={{ $json.description }}"
+              }
+            ]
+          },
+          "dealName": "={{ $json.company_name }}"
+        }
+      },
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.2,
+      "position": [
+        1888,
+        -208
+      ],
+      "id": "903556d5-f608-4301-80cd-aa9990653db1",
+      "name": "Create a deal",
+      "credentials": {
+        "hubspotAppToken": {
+          "id": "NZ0YafJkCPAYhlfW",
+          "name": "HubSpot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.hubapi.com/crm/v3/objects/deals/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"filterGroups\": [\n    {\n      \"filters\": [\n        {\n          \"propertyName\": \"dealname\",\n          \"operator\": \"CONTAINS_TOKEN\",\n          \"value\": \"{{ $json.company_name }}\"\n        }\n      ]\n    }\n  ],\n  \"limit\": 1\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1456,
+        -192
+      ],
+      "id": "6dd336d8-4534-4be0-bbf8-b3ea6c1922df",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "KFZqM8enQ8D0tsMU",
+          "name": "hubspot bearer"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "69938421-1950-4d08-94cd-9001e93f1b3c",
+              "leftValue": "={{ $json.total }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1680,
+        -192
+      ],
+      "id": "7268c71c-fd11-41b5-80e1-a0fa12a6656d",
+      "name": "If2"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark a message as read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get many messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many messages": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message": {
+      "main": [
+        [
+          {
+            "node": "Mark a message as read1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark a message as read": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark a message as read1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a deal": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "Create a deal",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "timezone": "Asia/Dhaka",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "deaba282-a53a-41a3-9734-e8e1794fe6dd",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5f00bba974abf03cb5183d4d65f8a9645a781b04770df6a7d08284fca87d50b3"
+  },
+  "nodeGroups": [],
+  "id": "YmtSc9JdOu06pTEa",
+  "tags": []
+}

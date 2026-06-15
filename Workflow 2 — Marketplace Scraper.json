@@ -1,0 +1,1031 @@
+{
+  "name": "Workflow 2",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -512,
+        368
+      ],
+      "id": "176d70fd-11fa-4975-b7ed-214b327b71ec",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/actors/crawlerbros~bizbuysell-scraper/run-sync-get-dataset-items?token=apify_api_0SHab7aShD9k2pbbVlviWBTDgWu2cq1GWnPi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n    \"enrichDetails\": false,\n    \"maxItems\": 5,\n    \"searchUrl\": \"https://www.bizbuysell.com/businesses-for-sale/\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -288,
+        80
+      ],
+      "id": "99ab4be8-09d8-464a-803c-65e427d65615",
+      "name": "BizzBuySell"
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\n\nreturn [{\n  json: {\n    title: d.title || '',\n    description: (d.description || '') + \n      (d.facilities ? '\\n\\nFacilities: ' + d.facilities : '') + \n      (d.support ? '\\n\\nSupport: ' + d.support : ''),\n    asking_price: parseFloat((d.askingPrice || '0').replace(/[^0-9.]/g, '')) || null,\n    revenue: d.grossIncome || null,\n    ebitda: d.cashFlow || null,\n    location: d.location?.trim() || '',\n    industry: d.industry || '',\n    broker_name: d.brokerName || '',\n    broker_phone: d.brokerPhone || '',\n    employees: d.employees || null,\n    year_established: d.yearEstablished || null,\n    financing: d.financingAvailable || '',\n    ffe: d.ffe || null,\n    listing_url: d.listingUrl || '',\n    business_id: d.businessId || '',\n    source: 'BizQuest'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        -176
+      ],
+      "id": "9ee3c815-0ea5-4e4c-96fa-e26d4d83b1c8",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -64,
+        80
+      ],
+      "id": "10d877d6-8e19-4470-a3b2-4cb6ae2135e8",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\n\nreturn [{\n  json: {\n    title: d.title || '',\n    description: (d.description || '') + \n      (d.facilities ? '\\n\\nFacilities: ' + d.facilities : '') + \n      (d.support ? '\\n\\nSupport: ' + d.support : ''),\n    asking_price: parseFloat((d.askingPrice || '0').replace(/[^0-9.]/g, '')) || null,\n    revenue: d.grossIncome || null,\n    ebitda: d.cashFlow || null,\n    location: d.location?.trim() || '',\n    industry: d.industry || '',\n    broker_name: d.brokerName || '',\n    broker_phone: d.brokerPhone || '',\n    employees: d.employees || null,\n    year_established: d.yearEstablished || null,\n    financing: d.financingAvailable || '',\n    ffe: d.ffe || null,\n    listing_url: d.listingUrl || '',\n    business_id: d.businessId || '',\n    source: 'BizQuest'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        416
+      ],
+      "id": "784e0ebd-bc25-4a6f-bb20-68206af163f5",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -64,
+        672
+      ],
+      "id": "40e7937e-570d-42f6-96b2-64897e2ac409",
+      "name": "Loop Over Items1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/actors/parseforge~bizquest-scraper/run-sync-get-dataset-items?token=apify_api_0SHab7aShD9k2pbbVlviWBTDgWu2cq1GWnPi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n    \"forceAllFilters\": true,\n    \"industry\": \"Restaurant\",\n    \"location\": \"California\",\n    \"maxItems\": 5\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -288,
+        672
+      ],
+      "id": "e9c54faf-ab0e-4ba0-ad2f-e9f8b697a105",
+      "name": "BizQuest"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze this business listing:\n\nTitle: {{ $json.title }}\nIndustry: {{ $json.industry }}\nLocation: {{ $json.location }}\nAsking Price: ${{ $json.asking_price }}\nAnnual Revenue: ${{ $json.revenue }}\nEBITDA/Cash Flow: ${{ $json.ebitda }}\nEmployees: {{ $json.employees }}\nYear Established: {{ $json.year_established }}\nFF&E Value: ${{ $json.ffe }}\nFinancing: {{ $json.financing }}\nBroker: {{ $json.broker_name }}\nBroker Phone: {{ $json.broker_phone }}\nListing URL: {{ $json.listing_url }}\n\nDescription:\n{{ $json.description }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are a deal analyst for Madison Lane Capital, a firm that acquires small-to-medium businesses in the USA.\n\nAnalyze this business listing and extract structured data, then score it.\n\nSCORING RULES (strict, based on available data only):\n- Revenue $500K+           → +2 points\n- EBITDA margin 15%+       → +2 points\n- Asking price < 5x EBITDA → +2 points\n- Location USA             → +1 point\n- Low/no red flags         → +2 points\n- Growth potential visible → +1 point\n\nIf data is missing, score only what exists.\n\nReturn ONLY raw JSON, no markdown, no backticks:\n{\n  \"company_name\": \"business name\",\n  \"industry\": \"industry\",\n  \"geography\": \"location\",\n  \"asking_price\": <number or null>,\n  \"revenue\": <number or null>,\n  \"ebitda\": <number or null>,\n  \"ebitda_margin\": <percentage or null>,\n  \"broker_name\": \"name\",\n  \"broker_phone\": \"phone\",\n  \"description\": \"2-3 sentence summary\",\n  \"red_flags\": [\"array of concerns or empty\"],\n  \"fit_score\": <0-10>,\n  \"fit_reasoning\": \"explanation\",\n  \"financing_available\": \"yes/no/details\",\n  \"source\": \"BizQuest\",\n  \"listing_url\": \"url\"\n}"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        384,
+        416
+      ],
+      "id": "2ee68e9d-54d6-46f6-8a29-5e847c0af56c",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "fec9be11-9470-435a-871c-d1f0ab23e577",
+              "leftValue": "={{ $json.fit_score }}",
+              "rightValue": 7,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        960,
+        416
+      ],
+      "id": "05b38feb-9588-4bb3-9097-76b681e4ec21",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "authentication": "appToken",
+        "resource": "deal",
+        "stage": "appointmentscheduled",
+        "additionalFields": {
+          "customPropertiesUi": {
+            "customPropertiesValues": [
+              {
+                "property": "industry",
+                "value": "={{ $json.broker_name }}"
+              },
+              {
+                "property": "deal_source",
+                "value": "={{ $json.source }}"
+              },
+              {
+                "property": "ebitda",
+                "value": "={{ $json.ebitda }}"
+              },
+              {
+                "property": "geography",
+                "value": "={{ $json.geography }}"
+              },
+              {
+                "property": "fit_score",
+                "value": "={{ $json.fit_score }}"
+              },
+              {
+                "property": "fit_reasoning",
+                "value": "={{ $json.fit_reasoning }}"
+              },
+              {
+                "property": "annual_revenue",
+                "value": "={{ $json.revenue }}"
+              },
+              {
+                "property": "ai_summary",
+                "value": "={{ $json.description }}"
+              }
+            ]
+          },
+          "dealName": "={{ $json.company_name }}"
+        }
+      },
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.2,
+      "position": [
+        1184,
+        416
+      ],
+      "id": "39b1b2d8-5668-43ce-bd7d-a8a3ecd6aad6",
+      "name": "Create a deal",
+      "credentials": {
+        "hubspotAppToken": {
+          "id": "NZ0YafJkCPAYhlfW",
+          "name": "HubSpot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "6674352173",
+        "text": "=🏢 *New Deal Alert!*\n\n*Company:* {{ $('If1').item.json.company_name }}\n*Industry:* {{ $('If1').item.json.industry }}\n*Location:* {{ $('If1').item.json.geography }}\n*Asking Price:* ${{ $('If1').item.json.asking_price }}\n*Revenue:* ${{ $('If1').item.json.revenue }}\n*EBITDA:* ${{ $('If1').item.json.ebitda }}\n*Fit Score:* {{ $('If1').item.json.fit_score }}/10 ⭐\n*Summary:* {{ $('If1').item.json.description }}\n*Broker:* {{ $('If1').item.json.broker_name }}\n*Broker Email:*{{ $('If1').item.json.broker_email }}\n*Source:* {{ $('If1').item.json.source }}\n\n🔗 Review in HubSpot:\nhttps://app-na2.hubspot.com/contacts/246226360/record/0-3/{{ $json.dealId }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1408,
+        544
+      ],
+      "id": "a082f069-10dc-44a1-a3ed-379d16d3e1b6",
+      "name": "Send a text message",
+      "webhookId": "a11cc84d-4338-4aa0-8e0b-d28677b95dda",
+      "credentials": {
+        "telegramApi": {
+          "id": "KUOkrTKXlM4zIVb8",
+          "name": "madison lane"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json.text;\nconst cleaned = response.replace(/```json|```/g, '').trim();\nconst deal = JSON.parse(cleaned);\nreturn [{ json: deal }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        736,
+        416
+      ],
+      "id": "1665401f-0f95-4082-bcc6-dcc82773de64",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "model": "deepseek/deepseek-chat",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        464,
+        640
+      ],
+      "id": "c45ed347-f052-47ce-b60a-94e7b4ae7be0",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "wMpqVEIa1BOABG2O",
+          "name": "OpenRouter account 50"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze this business listing:\n\nTitle: {{ $json.title }}\nIndustry: {{ $json.industry }}\nLocation: {{ $json.location }}\nAsking Price: ${{ $json.asking_price }}\nAnnual Revenue: ${{ $json.revenue }}\nEBITDA/Cash Flow: ${{ $json.ebitda }}\nEmployees: {{ $json.employees }}\nYear Established: {{ $json.year_established }}\nFF&E Value: ${{ $json.ffe }}\nFinancing: {{ $json.financing }}\nBroker: {{ $json.broker_name }}\nBroker Phone: {{ $json.broker_phone }}\nListing URL: {{ $json.listing_url }}\n\nDescription:\n{{ $json.description }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are a deal analyst for Madison Lane Capital, a firm that acquires small-to-medium businesses in the USA.\n\nAnalyze this business listing and extract structured data, then score it.\n\nSCORING RULES (strict, based on available data only):\n- Revenue $500K+           → +2 points\n- EBITDA margin 15%+       → +2 points\n- Asking price < 5x EBITDA → +2 points\n- Location USA             → +1 point\n- Low/no red flags         → +2 points\n- Growth potential visible → +1 point\n\nIf data is missing, score only what exists.\n\nReturn ONLY raw JSON, no markdown, no backticks:\n{\n  \"company_name\": \"business name\",\n  \"industry\": \"industry\",\n  \"geography\": \"location\",\n  \"asking_price\": <number or null>,\n  \"revenue\": <number or null>,\n  \"ebitda\": <number or null>,\n  \"ebitda_margin\": <percentage or null>,\n  \"broker_name\": \"name\",\n  \"broker_phone\": \"phone\",\n  \"description\": \"2-3 sentence summary\",\n  \"red_flags\": [\"array of concerns or empty\"],\n  \"fit_score\": <0-10>,\n  \"fit_reasoning\": \"explanation\",\n  \"financing_available\": \"yes/no/details\",\n  \"source\": \"BizQuest\",\n  \"listing_url\": \"url\"\n}"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        384,
+        -176
+      ],
+      "id": "93d0d071-2660-4644-a67a-c04b8dc4b6c3",
+      "name": "Basic LLM Chain1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "fec9be11-9470-435a-871c-d1f0ab23e577",
+              "leftValue": "={{ $json.fit_score }}",
+              "rightValue": 7,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        960,
+        -176
+      ],
+      "id": "48706262-ddf5-4415-9924-12d4b290fa43",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "authentication": "appToken",
+        "resource": "deal",
+        "stage": "appointmentscheduled",
+        "additionalFields": {
+          "customPropertiesUi": {
+            "customPropertiesValues": [
+              {
+                "property": "industry",
+                "value": "={{ $json.broker_name }}"
+              },
+              {
+                "property": "deal_source",
+                "value": "={{ $json.source }}"
+              },
+              {
+                "property": "ebitda",
+                "value": "={{ $json.ebitda }}"
+              },
+              {
+                "property": "geography",
+                "value": "={{ $json.geography }}"
+              },
+              {
+                "property": "fit_score",
+                "value": "={{ $json.fit_score }}"
+              },
+              {
+                "property": "fit_reasoning",
+                "value": "={{ $json.fit_reasoning }}"
+              },
+              {
+                "property": "annual_revenue",
+                "value": "={{ $json.revenue }}"
+              },
+              {
+                "property": "ai_summary",
+                "value": "={{ $json.description }}"
+              }
+            ]
+          },
+          "dealName": "={{ $json.company_name }}"
+        }
+      },
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.2,
+      "position": [
+        1184,
+        -176
+      ],
+      "id": "3534e967-b516-4f86-b5f5-e435c45df83b",
+      "name": "Create a deal1",
+      "credentials": {
+        "hubspotAppToken": {
+          "id": "NZ0YafJkCPAYhlfW",
+          "name": "HubSpot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "6674352173",
+        "text": "=🏢 *New Deal Alert!*\n\n*Company:* {{ $('If').item.json.company_name }}\n*Industry:* {{ $('If').item.json.industry }}\n*Location:* {{ $('If').item.json.geography }}\n*Asking Price:* ${{ $('If').item.json.asking_price }}\n*Revenue:* ${{ $('If').item.json.revenue }}\n*EBITDA:* ${{ $('If').item.json.ebitda }}\n*Fit Score:* {{ $('If').item.json.fit_score }}/10 ⭐\n*Summary:* {{ $('If').item.json.description }}\n*Broker:* {{ $('If').item.json.broker_name }}\n*Broker Email:*{{ $('If').item.json.broker_email }}\n*Source:* {{ $('If').item.json.source }}\n\n🔗 Review in HubSpot:\nhttps://app-na2.hubspot.com/contacts/246226360/record/0-3/{{ $json.dealId }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1408,
+        -48
+      ],
+      "id": "aa1794d4-aa52-4e1d-a12a-a75ef815394e",
+      "name": "Send a text message1",
+      "webhookId": "a11cc84d-4338-4aa0-8e0b-d28677b95dda",
+      "credentials": {
+        "telegramApi": {
+          "id": "KUOkrTKXlM4zIVb8",
+          "name": "madison lane"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json.text;\nconst cleaned = response.replace(/```json|```/g, '').trim();\nconst deal = JSON.parse(cleaned);\nreturn [{ json: deal }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        736,
+        -176
+      ],
+      "id": "3877b9cd-5ac2-430c-adbd-679bccbba4e2",
+      "name": "Code in JavaScript3"
+    },
+    {
+      "parameters": {
+        "model": "deepseek/deepseek-chat",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        464,
+        48
+      ],
+      "id": "976de23d-43a5-49a1-8ab6-5d97217bf027",
+      "name": "OpenRouter Chat Model1",
+      "credentials": {
+        "openRouterApi": {
+          "id": "wMpqVEIa1BOABG2O",
+          "name": "OpenRouter account 50"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "BizzBuySell": [
+      {
+        "json": {
+          "title": "Turnkey Vodka RTD Brand & Production Facility – Atlanta Metro",
+          "description": "Crispy Cool is a fully developed, ready-to-scale RTD (ready-to-drink) vodka cocktail brand based in Atlanta, Georgia. Built from the ground up with a long-term acquisition in mind, Crispy Cool offers...",
+          "url": "https://www.bizbuysell.com/business-opportunity/turnkey-vodka-rtd-brand-and-production-facility-atlanta-metro/2488729/",
+          "productId": "2488729",
+          "image": "https://api.apify.com/v2/key-value-stores/IZUC2HlEACZlkAM3R/records/image-2488729.webp",
+          "askingPrice": "$250,000",
+          "askingPriceNumeric": 250000,
+          "location": "Atlanta, GA",
+          "imageOriginal": "https://images.bizbuysell.com/shared/listings/248/2488729/4307912e-402e-4d4d-ac46-a7c935de8935-W336.webp",
+          "searchUrl": "https://m.bizbuysell.com/businesses-for-sale/",
+          "scrapedAt": "2026-06-06T14:23:27.857207+00:00"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      },
+      {
+        "json": {
+          "title": "Spread Smiles and Enjoy doing it!",
+          "description": "Established Ice Cream & Frozen Yogurt Franchise - Kingman, AZ This thriving franchise operation offers an excellent opportunity to spread smiles while building community connections in Kingman,...",
+          "url": "https://www.bizbuysell.com/business-opportunity/spread-smiles-and-enjoy-doing-it/2456778/",
+          "productId": "2456778",
+          "image": "https://api.apify.com/v2/key-value-stores/IZUC2HlEACZlkAM3R/records/image-2456778.webp",
+          "askingPrice": "$49,000",
+          "askingPriceNumeric": 49000,
+          "location": "Kingman, AZ",
+          "imageOriginal": "https://images.bizbuysell.com/shared/listings/245/2456778/16934060-73e9-44a7-9f7b-22477d2728c2-W336.webp",
+          "searchUrl": "https://m.bizbuysell.com/businesses-for-sale/",
+          "scrapedAt": "2026-06-06T14:23:27.972009+00:00"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      },
+      {
+        "json": {
+          "title": "Established Dog Training & Boarding Powerhouse – $984k Gross Revenue",
+          "description": "A Rare Opportunity to Own a Leading Name in Pet Services. Take the leash of a high-performing, established business in the booming pet industry. Operating since 2010, this premier facility has built a...",
+          "url": "https://www.bizbuysell.com/business-opportunity/established-dog-training-and-boarding-powerhouse-984k-gross-revenue/2446769/",
+          "productId": "2446769",
+          "image": "https://api.apify.com/v2/key-value-stores/IZUC2HlEACZlkAM3R/records/image-2446769.webp",
+          "askingPrice": "$1,000,000",
+          "askingPriceNumeric": 1000000,
+          "location": "Longmont, CO",
+          "imageOriginal": "https://images.bizbuysell.com/shared/listings/244/2446769/363b6d10-075d-4214-9ff7-a1eb0b023cb2-W336.webp",
+          "searchUrl": "https://m.bizbuysell.com/businesses-for-sale/",
+          "scrapedAt": "2026-06-06T14:23:28.090536+00:00"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      },
+      {
+        "json": {
+          "title": "Thriving Profitable Turnkey Independent Sandwich Shop",
+          "description": "Thriving Profitable Turnkey Independent Sandwich Shop Established in 2011, this profitable sandwich shop represents an exceptional opportunity in Charlottesville's growing Albemarle County market....",
+          "url": "https://www.bizbuysell.com/business-opportunity/thriving-profitable-turnkey-independent-sandwich-shop/2403654/",
+          "productId": "2403654",
+          "image": "https://api.apify.com/v2/key-value-stores/IZUC2HlEACZlkAM3R/records/image-2403654.jpg",
+          "askingPrice": "$200,000",
+          "askingPriceNumeric": 200000,
+          "location": "Charlottesville, VA",
+          "imageOriginal": "https://images.bizbuysell.com/shared/listings/240/2403654/97924122-5dfc-4491-8e1d-c8edde517681-W336.jpg",
+          "searchUrl": "https://m.bizbuysell.com/businesses-for-sale/",
+          "scrapedAt": "2026-06-06T14:23:28.191987+00:00"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      },
+      {
+        "json": {
+          "title": "Catering and Restaurant Business",
+          "description": "Don’t miss this rare chance to own a fully established restaurant and catering business with a loyal customer base and strong reputation. This is a BUSINESS-ONLY sale – step right in and start earning...",
+          "url": "https://www.bizbuysell.com/business-opportunity/catering-and-restaurant-business/2389627/",
+          "productId": "2389627",
+          "image": "https://api.apify.com/v2/key-value-stores/IZUC2HlEACZlkAM3R/records/image-2389627.webp",
+          "askingPrice": "$350,000",
+          "askingPriceNumeric": 350000,
+          "location": "Salem, NH",
+          "imageOriginal": "https://images.bizbuysell.com/shared/listings/238/2389627/0394c529-1e01-4551-a0a6-35c523ec3a14-W336.webp",
+          "searchUrl": "https://m.bizbuysell.com/businesses-for-sale/",
+          "scrapedAt": "2026-06-06T14:23:28.283414+00:00"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "BizQuest": [
+      {
+        "json": {
+          "imageUrl": "https://images.bizquest.com/shared/listings/240/2403654/97924122-5dfc-4491-8e1d-c8edde517681-W336.jpg",
+          "businessId": "2403654",
+          "title": "Thriving Profitable Turnkey Independent Sandwich Shop",
+          "askingPrice": "$200,000",
+          "cashFlow": 203169,
+          "grossIncome": 630000,
+          "location": "Charlottesville,  VA",
+          "city": "Charlottesville",
+          "state": " VA",
+          "county": "Albemarle County",
+          "zip": "22911",
+          "streetAddress": null,
+          "industry": "Food & Beverage",
+          "businessType": 167,
+          "employees": "12",
+          "yearEstablished": 2011,
+          "homeBased": null,
+          "absenteeOwner": null,
+          "isFranchise": null,
+          "relocatable": null,
+          "hotProperty": true,
+          "financingAvailable": "Owner is willing to finance 20% of purchase price to well qualified buyers",
+          "includesRealEstate": null,
+          "inventoryIncludedInAskingPrice": null,
+          "buildingSquareFeet": 1830,
+          "profileViews": 2656,
+          "brokerName": "Cary Jackson",
+          "brokerCompany": null,
+          "brokerPhone": "(540) 560-1832",
+          "brokerEmail": null,
+          "tpnPhone": null,
+          "tpnPhoneExt": null,
+          "description": "Thriving Profitable Turnkey Independent Sandwich Shop\r\n\r\nEstablished in 2011, this profitable sandwich shop represents an exceptional opportunity in Charlottesville's growing Albemarle County market. Located in a busy shopping center, the business has demonstrated strong performance with a 14.3% year-to-date sales increase for 2025 and annual revenue of $620,000.\r\n\r\nBusiness Overview:\r\nThis turnkey operation specializes in fresh sandwiches, wraps, smoothies, and salads, all crafted from the finest ingredients. The restaurant features a modern, efficient design in 1,830 square feet of leased space, creating a welcoming atmosphere that enhances the dining experience.\r\n\r\nMenu & Services:\r\n- Fresh-cut sandwiches and wraps prepared daily with premium meats and crisp vegetables\r\n- Smoothies blended with real fruits\r\n- Vibrant salads made from fresh ingredients\r\n- Established catering services with regular contracts including UVA Healthcare and the university\r\n\r\nFinancial Highlights:\r\n- Annual Revenue: $620,000\r\n- Strong profitability with consistent growth trajectory\r\n- 12 employees supporting efficient operations\r\n- Inventory valued at $10,000\r\n- FF&E valued at $100,000\r\n- Manager is paid $50,000 which could go to the new owner operator.\r\n- Owner will take out over $65,000 plus car expenses in 2025.\r\n\r\n\r\nLocation Advantages:\r\nPositioned in Albemarle County's growth corridor, benefiting from steady population expansion driven by education, healthcare, and professional services. Multiple new subdivisions and apartment complexes continue expanding the customer base.\r\n\r\nGrowth Opportunities:\r\nSignificant potential exists to expand the already strong catering segment with focused marketing efforts. The location's position in the county's primary growth area provides excellent prospects for continued expansion.\r\n\r\nLease Terms:\r\n- Monthly rent: $6,225\r\n- Lease expires: March 31, 2027 with an additional 5 year term.\r\n- 1,830 square feet in busy shopping center\r\n\r\nFinancing:\r\nSeller financing available for 20% of purchase price. The owner, after 40 years in hospitality including 14 years at this location, is retiring and will provide transitional support as needed.\r\n\r\nAsking Price: $225,000\r\n\r\nThis established business offers an ideal opportunity for an owner-operator to acquire a profitable, turnkey operation in a growing market with excellent expansion potential.",
+          "facilities": "The business includes a fully equipped kitchen with modern appliances, a well-designed dining area, and essential equipment such as ovens and refrigeration units. The facilities are optimized for efficient operations and customer service. Additionally, the restaurant comes with point-of-sale systems, furniture, and décor that align with the restaurants branding. All assets are in excellent condition, ensuring a smooth transition and immediate operation for the new owner.",
+          "support": "The seller will provide transitional support as needed by a buyer.",
+          "ffe": 100000,
+          "listingUrl": "https://www.bizquest.com/business-for-sale/thriving-profitable-turnkey-independent-sandwich-shop/BW2403654/",
+          "listingDate": null,
+          "scrapedTimestamp": "2026-06-06T15:47:27.682Z"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      },
+      {
+        "json": {
+          "imageUrl": "https://images.bizquest.com/shared/listings/238/2389627/0394c529-1e01-4551-a0a6-35c523ec3a14-W336.webp",
+          "businessId": "2389627",
+          "title": "Catering and Restaurant Business",
+          "askingPrice": "$350,000",
+          "cashFlow": "",
+          "grossIncome": null,
+          "location": "Salem,  NH",
+          "city": "Salem",
+          "state": " NH",
+          "county": "Rockingham County",
+          "zip": "03079",
+          "streetAddress": "254 N Broadway",
+          "industry": "Food & Beverage",
+          "businessType": 14,
+          "employees": null,
+          "yearEstablished": null,
+          "homeBased": null,
+          "absenteeOwner": null,
+          "isFranchise": null,
+          "relocatable": null,
+          "hotProperty": null,
+          "financingAvailable": null,
+          "includesRealEstate": null,
+          "inventoryIncludedInAskingPrice": true,
+          "buildingSquareFeet": null,
+          "profileViews": 1523,
+          "brokerName": "Daniel Mendonca",
+          "brokerCompany": null,
+          "brokerPhone": "(603) 490-8801",
+          "brokerEmail": null,
+          "tpnPhone": null,
+          "tpnPhoneExt": null,
+          "description": "Don’t miss this rare chance to own a fully established restaurant and catering business with a loyal customer base and strong reputation. This is a BUSINESS-ONLY sale – step right in and start earning from day one!\r\nThe business features a fully equipped commercial kitchen, spacious prep areas, and all the tools needed to run both dine-in and off-site catering operations. Current owners have built a solid following, providing a strong foundation for continued growth.\r\n\r\nHighlights include:\r\nProven track record with steady revenue and established clientele.\r\nFully equipped kitchen with modern appliances, fixtures, and catering equipment included in the sale.\r\nFlexible layout suitable for dine-in service, private functions, and off-premise catering.\r\nExperienced staff in place (optional to retain) for a smooth transition\r\nPrime location with high visibility and accessibility\r\nStrong growth potential for expanding catering services, online orders, and private event. This is an excellent opportunity for an experienced operator, chef, or entrepreneur looking to step into a turn-key, profitable business with immediate income potential.\r\nSale includes business name, fixtures, and equipment.\r\n\r\nShowings by appointment only. Financials available with signed confidentiality agreement.",
+          "facilities": null,
+          "support": null,
+          "ffe": null,
+          "listingUrl": "https://www.bizquest.com/business-for-sale/catering-and-restaurant-business/BW2389627/",
+          "listingDate": null,
+          "scrapedTimestamp": "2026-06-06T15:47:29.038Z"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      },
+      {
+        "json": {
+          "imageUrl": "https://images.bizquest.com/shared/listings/249/2491473/c3060e8f-3766-42a8-9d20-fd44db5ac303-W336.webp",
+          "businessId": "2491473",
+          "title": "High-Volume Turnkey Restaurant in Lake Forest & Irvine",
+          "askingPrice": "$425,000",
+          "cashFlow": "",
+          "grossIncome": null,
+          "location": "Lake Forest,  CA",
+          "city": "Lake Forest",
+          "state": " CA",
+          "county": "Orange County",
+          "zip": "92630",
+          "streetAddress": "23642 Rockfield Blvd",
+          "industry": "Food & Beverage",
+          "businessType": 165,
+          "employees": null,
+          "yearEstablished": null,
+          "homeBased": null,
+          "absenteeOwner": true,
+          "isFranchise": null,
+          "relocatable": null,
+          "hotProperty": true,
+          "financingAvailable": null,
+          "includesRealEstate": null,
+          "inventoryIncludedInAskingPrice": null,
+          "buildingSquareFeet": 2000,
+          "profileViews": 948,
+          "brokerName": "Lara Liu",
+          "brokerCompany": "CBD Investment Inc",
+          "brokerPhone": "(626) 238-8968",
+          "brokerEmail": null,
+          "tpnPhone": "6265514776",
+          "tpnPhoneExt": null,
+          "description": "Intersection of Rockfield Blvd & Lake Forest Dr \r\n\r\nThis is a rare opportunity to acquire a high-performing, turnkey restaurant perfectly positioned on the border of Lake Forest and Irvine. Located at the powerhouse intersection of Rockfield Boulevard and Lake Forest Drive, this site serves as the literal gateway between these two high-income cities, capturing the massive daytime business of Irvine and the dense residential growth of Lake Forest.\r\n\r\nExecutive Summary\r\n\r\nAsking Price: $425,000\r\n\r\nMonthly Gross Revenue: Approx. $140,000\r\n\r\nRecent Performance: Over $421,000 in total revenue (Oct–Dec 2025)\r\n\r\nSize: Approx. 2,000 Sq. Ft.\r\n\r\nRent: Under $12,000/Month (Includes NNN)\r\n\r\nLease Term: Secured through July 31, 2030 (5 years remaining)\r\n\r\nStrategic \"Borderline\" Location Advantage\r\n\r\n1. The Irvine Business & Auto District Gateway\r\nDirectly adjacent to the Irvine Auto Center and the massive Spectrum Business District. This location acts as the primary lunch and dinner destination for thousands of employees from Tesla, Toyota, Ford, and surrounding corporate offices who cross the border daily for the Lake Forest Gateway’s premium dining options.\r\n\r\n2. The \"Hotel Row\" Synergy (4 Major Brands)\r\nSituated directly across from a massive hospitality cluster: SpringHill Suites & TownePlace Suites by Marriott, Hampton Inn, and Homewood Suites. With over 400+ guest rooms, you have a rotating, high-disposable-income customer base of business travelers and tourists literally at your doorstep.\r\n\r\n3. 7 Minutes to Irvine Spectrum Center\r\nEnjoy the \"Spectrum Halo\" without the Spectrum price tag. You are minutes away from the region’s most significant economic hub and the I-5/405 freeway interchange, capturing the overflow of one of the busiest retail corridors in Southern California.\r\n\r\nBusiness & Asset Highlights\r\n\r\nProven High Volume: Consistent performance with daily averages of 90–130 orders and peak days exceeding $5,300 in gross sales.\r\n\r\nPowerhouse Co-Tenants: Share the center with national anchors Starbucks, Panera Bread, Buffalo Wild Wings, and IHOP, ensuring constant foot traffic 18 hours a day.\r\n\r\nLuxury Residential Growth: Bordered by new multi-million dollar master-planned communities like The Meadows by Toll Brothers, guaranteeing strong evening and weekend demand from affluent local families.\r\n\r\nTurnkey & Secure: Fully equipped for high-volume service with a recently extended lease featuring fixed 3% annual increases for long-term stability.",
+          "facilities": null,
+          "support": null,
+          "ffe": null,
+          "listingUrl": "https://www.bizquest.com/business-for-sale/high-volume-turnkey-restaurant-in-lake-forest-and-irvine/BW2491473/",
+          "listingDate": null,
+          "scrapedTimestamp": "2026-06-06T15:47:30.678Z"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      },
+      {
+        "json": {
+          "imageUrl": "https://images.bizquest.com/shared/listings/245/2456222/70f1241a-a55b-4c00-af4f-0a6eabff501d-W336.webp",
+          "businessId": "2456222",
+          "title": "Successful Restaurant in Prime Covington Location",
+          "askingPrice": "$1,249,000",
+          "cashFlow": 311767,
+          "grossIncome": 1950000,
+          "location": "Covington,  KY",
+          "city": "Covington",
+          "state": " KY",
+          "county": "Kenton County",
+          "zip": "41011",
+          "streetAddress": null,
+          "industry": "Food & Beverage",
+          "businessType": 14,
+          "employees": null,
+          "yearEstablished": 1990,
+          "homeBased": null,
+          "absenteeOwner": null,
+          "isFranchise": null,
+          "relocatable": null,
+          "hotProperty": null,
+          "financingAvailable": "Seller financing available to qualified buyers only",
+          "includesRealEstate": null,
+          "inventoryIncludedInAskingPrice": null,
+          "buildingSquareFeet": 2300,
+          "profileViews": 937,
+          "brokerName": null,
+          "brokerCompany": null,
+          "brokerPhone": null,
+          "brokerEmail": null,
+          "tpnPhone": null,
+          "tpnPhoneExt": null,
+          "description": "SUCCESSFUL RESTAURANT IN PRIME COVINGTON LOCATION\r\n\r\nThis highly successful franchised restaurant represents an exceptional turn-key acquisition opportunity in Covington, Kentucky. This local staple has built a loyal customer base over more than 30 years, specializing in high-quality food with outstanding customer service.\r\n\r\nFINANCIAL PERFORMANCE:\r\n• Annual Revenue: $1,950,000\r\n• EBITDA: $311,767\r\n• Asking Price: $1,249,000\r\n• FF&E Value: $350,000\r\n• Inventory Value: $15,000\r\n\r\nLOCATION & LEASE:\r\n• Prime 2,300 sq ft location on central corridor near Covington riverfront\r\n• Favorable long-term lease at $10,000/month\r\n• Excellent real estate positioning in fast-growing market with significant nearby development\r\n\r\nGROWTH OPPORTUNITIES:\r\n• Expand operating hours to capture consistent area traffic\r\n• Implement local store marketing initiatives with schools, churches, libraries, and businesses\r\n• Additional franchise opportunities available within the system\r\n• Untapped potential for increased local market presence\r\n\r\nBUSINESS ADVANTAGES:\r\n• Turn-key operation ready for immediate ownership transition\r\n• Established brand recognition and customer loyalty\r\n• Proven profitable concept with 30+ year track record\r\n• Stable competitive environment\r\n• Strategic location benefits from ongoing area development\r\n\r\nFINANCING & SUPPORT:\r\n• Seller financing available to qualified buyers\r\n• Comprehensive training package: one week hands-on franchisor training plus one month seller support\r\n• Seamless ownership transition process\r\n\r\nThis opportunity is ideal for owner-operators or investment groups seeking a profitable, established restaurant with strong growth potential in an excellent location. The seller is focusing on other business ventures, creating this rare opportunity to acquire a proven performer in Kentucky's dynamic riverfront market.",
+          "facilities": "Fully stocked kitchen with refrigerators, freezers, walk-in cooler, walk-in freezer, POS equipment and more.",
+          "support": "Franchisor will provide a week of hands-on training, and Seller will provide a month of support to ensure a seamless handoff.",
+          "ffe": 350000,
+          "listingUrl": "https://www.bizquest.com/business-for-sale/successful-restaurant-in-prime-covington-location/BW2456222/",
+          "listingDate": null,
+          "scrapedTimestamp": "2026-06-06T15:47:31.709Z"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      },
+      {
+        "json": {
+          "imageUrl": "https://images.bizquest.com/shared/listings/245/2455761/a2432903-6b3a-41bb-8f3f-1b904661932a-W336.webp",
+          "businessId": "2455761",
+          "title": "Established Fast-Casual Mediterranean Restaurant",
+          "askingPrice": "$875,000",
+          "cashFlow": 255000,
+          "grossIncome": 1400000,
+          "location": "Williamson County,  TX",
+          "city": "Williamson County",
+          "state": " TX",
+          "county": "Williamson County",
+          "zip": null,
+          "streetAddress": null,
+          "industry": "Food & Beverage",
+          "businessType": 214,
+          "employees": null,
+          "yearEstablished": 2023,
+          "homeBased": null,
+          "absenteeOwner": null,
+          "isFranchise": true,
+          "relocatable": null,
+          "hotProperty": true,
+          "financingAvailable": "Franchisor can provide financing options",
+          "includesRealEstate": null,
+          "inventoryIncludedInAskingPrice": true,
+          "buildingSquareFeet": 2400,
+          "profileViews": 1477,
+          "brokerName": "Hudson Bohan",
+          "brokerCompany": "United Franchise Group",
+          "brokerPhone": "(561) 934-0890",
+          "brokerEmail": null,
+          "tpnPhone": "5618982009",
+          "tpnPhoneExt": null,
+          "description": "This is an opportunity to acquire an established fast-casual Mediterranean restaurant franchise opened in 2023 and operating in a high-growth area of Williamson County, Texas. The business is staffed with approximately 13 employees and operates from a modern, purpose-built location with long-term lease security.\r\n\r\nBacked by a rapidly growing national brand, authentic menu offerings, and a proven operating system, this restaurant is well positioned for continued success. With comprehensive training and ongoing franchisor support, this opportunity is ideal for an owner-operator or investor seeking a scalable restaurant concept in a thriving market.",
+          "facilities": "Opened in 2023 in a brand-new building, this restaurant features a modern kitchen and dining space with well-maintained, like-new equipment. Favorable lease terms include a 60-month base term with three renewal options and ample parking with easy access.",
+          "support": "The franchisor provides 4 weeks of comprehensive training, covering operations, food preparation, systems, and management. This is paired with ongoing franchisor support, marketing resources, and a proven operating model.",
+          "ffe": 300000,
+          "listingUrl": "https://www.bizquest.com/business-for-sale/established-fast-casual-mediterranean-restaurant/BW2455761/",
+          "listingDate": null,
+          "scrapedTimestamp": "2026-06-06T15:47:32.863Z"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "BizzBuySell",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "BizQuest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BizzBuySell": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BizQuest": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Create a deal",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a deal": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Create a deal1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a deal1": {
+      "main": [
+        [
+          {
+            "node": "Send a text message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "timezone": "Asia/Dhaka",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "9894def7-79f1-4de6-a378-88bb9a07e41b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5f00bba974abf03cb5183d4d65f8a9645a781b04770df6a7d08284fca87d50b3"
+  },
+  "nodeGroups": [],
+  "id": "eRtOwho149jlSYDd",
+  "tags": []
+}

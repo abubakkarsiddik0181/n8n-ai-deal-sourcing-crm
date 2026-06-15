@@ -1,0 +1,254 @@
+{
+  "name": "workflow 3",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "id": "cf5733dc-f7e9-4ad5-8a1c-0b7665af6fff",
+      "name": "Schedule - Daily 9AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        -16,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst deals = data.results || [];\n\nconst today = new Date().toLocaleDateString('en-US', {\n  weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'\n});\n\nif (deals.length === 0) {\n  return [{ json: { report: `📊 *Daily Deal Digest*\\n_${today}_\\n\\nNo new deals in the last 24 hours.`, dealCount: 0 } }];\n}\n\nconst sorted = deals\n  .sort((a, b) => (Number(b.properties.fit_score) || 0) - (Number(a.properties.fit_score) || 0))\n  .slice(0, 10);\n\nlet report = `📊 *Daily Deal Digest*\\n`;\nreport += `_${today}_\\n\\n`;\nreport += `*Total New Deals: ${deals.length}*\\n`;\nreport += `*Showing Top ${sorted.length} of ${deals.length} deals*\\n\\n`;\nreport += `━━━━━━━━━━━━━━━━\\n\\n`;\n\nsorted.forEach((deal, i) => {\n  const p = deal.properties;\n  report += `${i + 1}. *${p.dealname}*\\n`;\n  report += `   📍 ${p.geography || 'N/A'} | 🏭 ${p.industry || 'N/A'}\\n`;\n  report += `   💰 Revenue: $${Number(p.annual_revenue).toLocaleString()}\\n`;\n  report += `   📈 EBITDA: $${Number(p.ebitda).toLocaleString()}\\n`;\n  report += `   ⭐ Fit Score: ${p.fit_score}/10\\n`;\n  report += `   📝 ${p.ai_summary || 'N/A'}\\n`;\n  report += `   🔗 ${p.listing_url || 'N/A'}\\n\\n`;\n});\n\nreport += `━━━━━━━━━━━━━━━━\\n`;\nreport += `🔗 Full Pipeline: https://app-na2.hubspot.com/deals/246226360`;\n\nreturn [{ json: { report, dealCount: deals.length } }];"
+      },
+      "id": "c525d8de-dbb7-43a0-a2c4-1e817f12c389",
+      "name": "Build Daily Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        336,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "6674352173",
+        "text": "={{ $json.report }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "9f5aa9a0-9b1c-4635-9ed5-dd08d9482a14",
+      "name": "Telegram - Send Daily Report",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        512,
+        0
+      ],
+      "webhookId": "886dd44f-807f-4341-9427-50ba22eced9e",
+      "credentials": {
+        "telegramApi": {
+          "id": "KUOkrTKXlM4zIVb8",
+          "name": "madison lane"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": " https://api.hubapi.com/crm/v3/objects/deals/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"filterGroups\": [\n    {\n      \"filters\": [\n        {\n          \"propertyName\": \"createdate\",\n          \"operator\": \"GT\",\n          \"value\": \"{{ new Date(Date.now() - 24 * 60 * 60 * 1000).getTime() }}\"\n        }\n      ]\n    }\n  ],\n  \"properties\": [\n    \"dealname\",\n    \"industry\",\n    \"geography\",\n    \"annual_revenue\",\n    \"ebitda\",\n    \"fit_score\",\n    \"ai_summary\",\n    \"deal_source\",\n    \"listing_url\",\n    \"createdate\"\n  ],\n  \"limit\": 100\n}\n\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        160,
+        0
+      ],
+      "id": "0e15bcf4-f140-4e94-98d7-896484335c4b",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "KFZqM8enQ8D0tsMU",
+          "name": "hubspot bearer"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "id": "5447f725-d565-43d8-b91c-c391b4e2d143",
+      "name": "Schedule - Daily 9AM1",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        -16,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst deals = data.results || [];\n\nconst today = new Date().toLocaleDateString('en-US', {\n  weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'\n});\n\nconst weekStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', {\n  month: 'long', day: 'numeric'\n});\n\nif (deals.length === 0) {\n  return [{ json: { report: `📋 *Weekly Pipeline Report*\\n_${weekStart} → ${today}_\\n\\nNo new deals this week.`, dealCount: 0 } }];\n}\n\n// Source breakdown\nconst bySource = {};\ndeals.forEach(d => {\n  const src = d.properties.deal_source || 'Unknown';\n  if (!bySource[src]) bySource[src] = 0;\n  bySource[src]++;\n});\n\n// Score stats\nconst avgScore = (deals.reduce((sum, d) => sum + Number(d.properties.fit_score || 0), 0) / deals.length).toFixed(1);\nconst highFit = deals.filter(d => Number(d.properties.fit_score) >= 8).length;\n\n// Top 10 by fit score\nconst sorted = deals\n  .sort((a, b) => (Number(b.properties.fit_score) || 0) - (Number(a.properties.fit_score) || 0))\n  .slice(0, 10);\n\nlet report = `📋 *Weekly Pipeline Report*\\n`;\nreport += `_${weekStart} → ${today}_\\n\\n`;\nreport += `━━━━━━━━━━━━━━━━\\n`;\nreport += `📦 *Total Deals: ${deals.length}*\\n`;\nreport += `⭐ Avg Fit Score: ${avgScore}/10\\n`;\nreport += `🔥 High Fit (8+): ${highFit}\\n\\n`;\n\nreport += `📌 *By Source:*\\n`;\nObject.entries(bySource).forEach(([src, count]) => {\n  report += `  • ${src}: ${count}\\n`;\n});\n\nreport += `\\n━━━━━━━━━━━━━━━━\\n`;\nreport += `🏆 *Top ${sorted.length} Deals:*\\n\\n`;\n\nsorted.forEach((deal, i) => {\n  const p = deal.properties;\n  report += `${i + 1}. *${p.dealname}*\\n`;\n  report += `   📍 ${p.geography || 'N/A'} | 🏭 ${p.industry || 'N/A'}\\n`;\n  report += `   💰 $${Number(p.annual_revenue).toLocaleString()}\\n`;\n  report += `   ⭐ Score: ${p.fit_score}/10\\n\\n`;\n});\n\nreport += `━━━━━━━━━━━━━━━━\\n`;\nreport += `🔗 Full Pipeline: https://app-na2.hubspot.com/deals/246226360`;\n\nreturn [{ json: { report, dealCount: deals.length } }];"
+      },
+      "id": "35dc40fa-a72f-49be-804c-16d75a4ff159",
+      "name": "Build Daily Report1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "6674352173",
+        "text": "={{ $json.report }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "fa8ea49b-6d8e-4dee-97df-0bf042b74e88",
+      "name": "Telegram - Send Daily Report1",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        528,
+        224
+      ],
+      "webhookId": "886dd44f-807f-4341-9427-50ba22eced9e",
+      "credentials": {
+        "telegramApi": {
+          "id": "KUOkrTKXlM4zIVb8",
+          "name": "madison lane"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": " https://api.hubapi.com/crm/v3/objects/deals/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"filterGroups\": [\n    {\n      \"filters\": [\n        {\n          \"propertyName\": \"createdate\",\n          \"operator\": \"GT\",\n          \"value\": \"{{ new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).getTime() }}\"\n        }\n      ]\n    }\n  ],\n  \"properties\": [\n    \"dealname\",\n    \"industry\",\n    \"geography\",\n    \"annual_revenue\",\n    \"ebitda\",\n    \"fit_score\",\n    \"ai_summary\",\n    \"deal_source\",\n    \"listing_url\",\n    \"createdate\"\n  ],\n  \"limit\": 100\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        160,
+        224
+      ],
+      "id": "bb9c034e-3489-4a6e-ba54-de231b3dbaea",
+      "name": "HTTP Request1",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "KFZqM8enQ8D0tsMU",
+          "name": "hubspot bearer"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule - Daily 9AM": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Daily Report": {
+      "main": [
+        [
+          {
+            "node": "Telegram - Send Daily Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Build Daily Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule - Daily 9AM1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Daily Report1": {
+      "main": [
+        [
+          {
+            "node": "Telegram - Send Daily Report1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Build Daily Report1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "12d9dd4e-e5ba-4634-a533-04403e0aa084",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5f00bba974abf03cb5183d4d65f8a9645a781b04770df6a7d08284fca87d50b3"
+  },
+  "nodeGroups": [],
+  "id": "bYUxWkR4TpPNApGw",
+  "tags": []
+}
